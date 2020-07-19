@@ -1,14 +1,11 @@
-import math
-
 import gym
 import numpy as np
+import math
 import torch
-
 import utils
-from policies import QPolicy
 
+class QPolicy:
 
-class TabQPolicy(QPolicy):
     def __init__(self, env, buckets, actionsize, lr, gamma, model=None):
         """
         Inititalize the tabular q policy
@@ -22,14 +19,29 @@ class TabQPolicy(QPolicy):
             model = np.zeros(self.buckets + (actionsize,))
 
         """
-        super().__init__(len(buckets), actionsize, lr, gamma)
+        self.statesize = len(buckets)
+        self.actionsize = actionsize
+        self.lr = lr
+        self.gamma = gamma
         self.env = env
         self.buckets = buckets
-        # self.Q_vals = [[[[[0.0 for i in range(actionsize)] for j in range(buckets[3])] for k in range(buckets[2])] for l in range(buckets[1])] for m in range(buckets[0])]
         if model is None:
             self.model = np.zeros(self.buckets + (actionsize,))
         else:
             self.model = model
+
+
+    def __call__(self, state, epsilon):
+        qs = self.qvals(state[np.newaxis])[0]
+        # print(self.Q_vals)
+        decision = np.random.uniform(0, 1)
+        if decision < epsilon:
+            pi = np.ones(self.actionsize) / self.actionsize
+        else:
+            pi = np.zeros(self.actionsize)
+            pi[np.argmax(qs)] = 1.0
+        return pi
+
     def discretize(self, obs):
         """
         Discretizes the continuous input observation
@@ -96,19 +108,3 @@ class TabQPolicy(QPolicy):
         saves the model at the specified outpath
         """
         torch.save(self.model, outpath)
-
-
-if __name__ == '__main__':
-    args = utils.hyperparameters()
-
-    env = gym.make('CartPole-v1')
-
-    statesize = env.observation_space.shape[0]
-    actionsize = env.action_space.n
-    policy = TabQPolicy(env, buckets=(12, 10, 12, 10), actionsize=actionsize, lr=args.lr, gamma=args.gamma)
-    # print(policy.model)
-
-    utils.qlearn(env, policy, args)
-    # print(policy.model)
-
-    torch.save(policy.model, 'models/tabular.npy')
