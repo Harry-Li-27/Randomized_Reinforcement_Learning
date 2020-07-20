@@ -125,6 +125,7 @@ def train(env, n_episodes, render=False):
 
 def test(env, n_episodes, policy, render=True):
     # env = gym.wrappers.Monitor(env, './videos/' + 'dqn_pong_video')
+    epsilon = 0.001
     for episode in range(n_episodes):
         obs = env.reset()
         state = get_state(obs)
