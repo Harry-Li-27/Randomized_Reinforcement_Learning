@@ -8,6 +8,7 @@ import time
 
 import gym
 
+from wrapper import *
 from buffer import ReplayMemory
 from dqn import *
 
@@ -16,7 +17,6 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
-from wrapper import *
 
 Transition = namedtuple('Transion',
                         ('state', 'action', 'next_state', 'reward'))
@@ -30,7 +30,7 @@ def select_action(state):
     steps_done += 1
     if sample > eps_threshold:
         with torch.no_grad():
-            return policy_net(state.to('cpu')).max(1)[1].view(1,1)
+            return policy_net(state.to('cuda')).max(1)[1].view(1,1)
     else:
         return torch.tensor([[random.randrange(4)]], device=device, dtype=torch.long)
 
@@ -49,18 +49,18 @@ def optimize_model():
     """
     batch = Transition(*zip(*transitions))
 
-    actions = tuple((map(lambda a: torch.tensor([[a]], device='cpu'), batch.action)))
-    rewards = tuple((map(lambda r: torch.tensor([r], device='cpu'), batch.reward)))
+    actions = tuple((map(lambda a: torch.tensor([[a]], device='cuda'), batch.action)))
+    rewards = tuple((map(lambda r: torch.tensor([r], device='cuda'), batch.reward)))
 
     non_final_mask = torch.tensor(
         tuple(map(lambda s: s is not None, batch.next_state)),
         device=device, dtype=torch.uint8)
 
     non_final_next_states = torch.cat([s for s in batch.next_state
-                                       if s is not None]).to('cpu')
+                                       if s is not None]).to('cuda')
 
 
-    state_batch = torch.cat(batch.state).to('cpu')
+    state_batch = torch.cat(batch.state).to('cuda')
     action_batch = torch.cat(actions)
     reward_batch = torch.cat(rewards)
 
@@ -129,7 +129,7 @@ def test(env, n_episodes, policy, render=True):
         state = get_state(obs)
         total_reward = 0.0
         for t in count():
-            action = policy(state.to('cpu')).max(1)[1].view(1,1)
+            action = policy(state.to('cuda')).max(1)[1].view(1,1)
 
             if render:
                 env.render()
