@@ -35,6 +35,13 @@ def select_action(state):
     else:
         return torch.tensor([[random.randrange(4)]], device=device, dtype=torch.long)
 
+def adversarial_attack(state, gamma):
+    print(state)
+    state = state*(1+gamma)
+    print(state)
+    state = torch.clamp(state, 0, 255)
+
+    return state
 
 def optimize_model():
     if len(memory) < BATCH_SIZE:
@@ -83,6 +90,7 @@ def get_state(obs):
     state = np.array(obs)
     state = state.transpose((2, 0, 1))
     state = torch.from_numpy(state)
+    state = state.type(torch.DoubleTensor)
     return state.unsqueeze(0)
 
 def train(env, n_episodes, render=False):
@@ -146,8 +154,11 @@ def test(env, n_episodes, policy, render=True):
 
             total_reward += reward
 
+
             if not done:
                 next_state = get_state(obs)
+                next_state = adversarial_attack(next_state, 0.1)
+                break
                 """
                 sign_state_grad = next_state.grad.data.sign()
                 next_state = next_state + epsilon*sign_state_grad
@@ -203,5 +214,5 @@ if __name__ == '__main__':
     #     train(env, 2000)
     #     torch.save(policy_net, "model/dqn_pong_model_0_" + str(i))
     #     policy_net = torch.load("model/dqn_pong_model_0_" + str(i))
-    policy_net = torch.load("model/dqn_pong_model_0_15")
+    policy_net = torch.load("model/dqn_pong_model_0_19")
     test(env, 1, policy_net, render=False)
